@@ -39,7 +39,7 @@ async function startServer() {
 
   // 2. POST: Submit a new shopping link
   app.post("/api/submissions", async (req, res) => {
-    const { marketplace, productUrl, customerName, customerPhone, quantity, notes } = req.body;
+    const { marketplace, productUrl, customerName, customerPhone, customerAddress, quantity, notes } = req.body;
 
     if (!marketplace || !productUrl || !customerName || !customerPhone) {
       return res.status(400).json({
@@ -54,6 +54,7 @@ async function startServer() {
         productUrl,
         customerName,
         customerPhone,
+        customerAddress: customerAddress || "",
         quantity: Number(quantity) || 1,
         notes: notes || ""
       });

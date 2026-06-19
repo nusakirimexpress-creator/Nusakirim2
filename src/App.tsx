@@ -30,7 +30,11 @@ import {
   Globe2,
   Eye,
   EyeOff,
-  Lock
+  Lock,
+  MapPin,
+  Bell,
+  Ticket,
+  QrCode
 } from 'lucide-react';
 
 import FloatingToast, { Toast } from './components/FloatingToast';
@@ -48,12 +52,55 @@ export default function App() {
   const [submissions, setSubmissions] = useState<LinkSubmission[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const [showOrderForm, setShowOrderForm] = useState(false);
   
+  // User Profile from local storage (Login / Signup)
+  const [userProfile, setUserProfile] = useState<{ name: string; phone: string; address: string } | null>(() => {
+    try {
+      const saved = localStorage.getItem('nusakirim_user_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   // New Submission Form State
   const [selectedMarketplace, setSelectedMarketplace] = useState<'shopee' | 'tokopedia' | 'tiktok' | 'lainnya'>('shopee');
   const [productUrl, setProductUrl] = useState('');
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  
+  const [customerName, setCustomerName] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nusakirim_user_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.name || '';
+      }
+    } catch {}
+    return '';
+  });
+
+  const [customerPhone, setCustomerPhone] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nusakirim_user_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.phone || '';
+      }
+    } catch {}
+    return '';
+  });
+
+  const [customerAddress, setCustomerAddress] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nusakirim_user_profile');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.address || '';
+      }
+    } catch {}
+    return '';
+  });
+
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
 
@@ -238,6 +285,7 @@ export default function App() {
           productUrl: productUrl.trim(),
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
+          customerAddress: customerAddress.trim(),
           quantity: quantity,
           notes: notes.trim()
         })
@@ -420,6 +468,15 @@ Silakan konfirmasikan kelanjutan pemesanan jika estimasi sudah sesuai. Terima ka
           label: 'Lainnya / Situs Web Bebas'
         };
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('nusakirim_user_profile');
+    setUserProfile(null);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerAddress('');
+    addToast('Anda berhasil keluar dari profil.', 'info');
   };
 
   const marketingStyle = getMarketplaceStyling(selectedMarketplace);
@@ -693,7 +750,7 @@ Silakan konfirmasikan kelanjutan pemesanan jika estimasi sudah sesuai. Terima ka
                             </div>
 
                             {/* Client Identification */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2 bg-zinc-50/70 p-4 rounded-xl border border-zinc-100">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-2 bg-zinc-50/70 p-4 rounded-xl border border-zinc-100">
                               <div>
                                 <span className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider">NAMA PEMBELI</span>
                                 <span className="text-sm font-bold text-studio-charcoal block mt-0.5">{item.customerName}</span>
@@ -710,6 +767,12 @@ Silakan konfirmasikan kelanjutan pemesanan jika estimasi sudah sesuai. Terima ka
                                   <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
                               </div>
+                              {item.customerAddress && (
+                                <div className="md:border-l md:pl-4 border-zinc-200">
+                                  <span className="block text-[10px] font-mono text-zinc-400 uppercase tracking-wider">ALAMAT PENGIRIMAN</span>
+                                  <span className="text-xs font-bold text-zinc-700 block mt-0.5 leading-relaxed">{item.customerAddress}</span>
+                                </div>
+                              )}
                             </div>
 
                             {/* Product Paste Link Container */}
@@ -990,6 +1053,134 @@ Silakan konfirmasikan kelanjutan pemesanan jika estimasi sudah sesuai. Terima ka
                 })()}
               </AnimatePresence>
             </motion.section>
+          ) : !userProfile ? (
+            
+            // ==================== B1: MANDATORY CUSTOMER LOGIN GATEWAY ====================
+            <motion.div
+              key="customer-login"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35 }}
+              className="max-w-md mx-auto my-12 px-4 select-none"
+            >
+              <div id="customer-login-form-card" className="bg-white rounded-3xl border border-zinc-200 shadow-2xl overflow-hidden relative text-left">
+                {/* Visual red header */}
+                <div className="bg-[#E61C24] text-white p-6 relative overflow-hidden">
+                  <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-red-800/40 to-transparent skew-x-12 pointer-events-none" />
+                  <div className="flex items-center gap-3.5 mb-2 relative z-10">
+                    <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center text-xl shrink-0">
+                      🚚
+                    </div>
+                    <div>
+                      <h3 className="font-display font-black text-lg tracking-tight uppercase">
+                        NusaKirim Express
+                      </h3>
+                      <p className="text-[10px] text-zinc-200 font-bold tracking-widest uppercase">
+                        Jembatan Belanja Ternate – Sofifi
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-24 h-0.5 bg-[#ECC828] rounded-full my-3" />
+                  <p className="text-xs text-white/90 leading-relaxed font-sans">
+                    Halo Kak! Silakan lengkapi profil singkat Anda sebelum memulai. Cukup sekali isi, selanjutnya tinggal salin & tempel link belanja saja!
+                  </p>
+                </div>
+
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    
+                    const name = (e.currentTarget.elements.namedItem('loginName') as HTMLInputElement).value.trim();
+                    const phone = (e.currentTarget.elements.namedItem('loginPhone') as HTMLInputElement).value.trim();
+                    const address = (e.currentTarget.elements.namedItem('loginAddress') as HTMLTextAreaElement).value.trim();
+
+                    if (!name || !phone || !address) {
+                      addToast('Mohon lengkapi semua data profil Anda.', 'info');
+                      return;
+                    }
+
+                    const profile = { name, phone, address };
+                    localStorage.setItem('nusakirim_user_profile', JSON.stringify(profile));
+                    
+                    setUserProfile(profile);
+                    setCustomerName(name);
+                    setCustomerPhone(phone);
+                    setCustomerAddress(address);
+
+                    addToast(`Selamat Datang, ${name}! Profil berhasil disinkronkan.`, 'success');
+                  }}
+                  className="p-6 space-y-5"
+                >
+                  {/* 1. Nama Lengkap */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] uppercase tracking-wider font-extrabold text-zinc-650">
+                      Nama Lengkap *
+                    </label>
+                    <div className="relative">
+                      <input
+                        name="loginName"
+                        type="text"
+                        required
+                        placeholder="Contoh: Muhammad Rian"
+                        className="w-full text-xs sm:text-sm pl-4 pr-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all font-sans"
+                      />
+                    </div>
+                    <p className="text-[9px] text-zinc-400">Gunakan nama asli untuk mempermudah verifikasi paket.</p>
+                  </div>
+
+                  {/* 2. No WhatsApp */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] uppercase tracking-wider font-extrabold text-zinc-650">
+                      Nomor WhatsApp Aktif *
+                    </label>
+                    <div className="relative">
+                      <input
+                        name="loginPhone"
+                        type="text"
+                        required
+                        placeholder="Contoh: 08123456789 atau +62..."
+                        className="w-full text-xs sm:text-sm pl-4 pr-10 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all font-mono"
+                      />
+                      <div className="absolute right-3.5 top-3.5 text-zinc-400">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <p className="text-[9px] text-zinc-400">Admin akan segera berkabar melalui nomor WhatsApp ini.</p>
+                  </div>
+
+                  {/* 3. Alamat pengiriman */}
+                  <div className="space-y-1.5">
+                    <label className="block text-[11px] uppercase tracking-wider font-extrabold text-zinc-650">
+                      Alamat Pengiriman Lengkap *
+                    </label>
+                    <textarea
+                      name="loginAddress"
+                      rows={3}
+                      required
+                      placeholder="Contoh: Perumahan Indah Sofifi, Blok C No. 5, Sofifi, Maluku Utara (Dekat Kantor Gubernur)"
+                      className="w-full text-xs sm:text-sm px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all resize-none font-sans"
+                    />
+                    <p className="text-[9px] text-zinc-400">Pastikan rincian rute pengiriman, kelurahan, dan kecamatan ditulis lengkap.</p>
+                  </div>
+
+                  {/* CTA button */}
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    className="w-full py-3.5 bg-[#E61C24] hover:bg-red-700 active:scale-95 text-white rounded-xl font-bold font-display text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-150"
+                  >
+                    <span>⚡ Masuk & Mulai Belanja ⚡</span>
+                  </motion.button>
+                </form>
+
+                {/* Secure footer block */}
+                <div className="bg-zinc-50 px-6 py-4 border-t border-zinc-150 flex items-center gap-3 text-[10px] text-zinc-500 font-semibold justify-center">
+                  <span>🛡️</span>
+                  <span>Data Anda aman & tersimpan secara lokal di browser Anda.</span>
+                </div>
+              </div>
+            </motion.div>
           ) : (
             
             // ==================== B: CUSTOMER LANDING PORTAL GATEWAY ====================
@@ -1000,176 +1191,537 @@ Silakan konfirmasikan kelanjutan pemesanan jika estimasi sudah sesuai. Terima ka
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              
-              {/* Hero Banner with the dynamic Link Paste Form Box */}
-              <section id="hero-portal" className="relative py-12 lg:py-20 bg-white border-b border-zinc-200 overflow-hidden">
-                {/* Subtle map pattern background */}
-                <div className="absolute inset-0 bg-[radial-gradient(#C5A880_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none" />
+                      {/* ==================== AESTHETIC HIGH-CONTRAST APP WRAPPER: ALFAGIFT / MIDI KRIING inspired red header ==================== */}
+              <div className="w-full bg-[#E61C24] text-white pt-5 pb-6 px-4 rounded-b-[2.5rem] shadow-xl relative z-30 font-sans select-none">
+                <div className="max-w-5xl mx-auto space-y-4">
+                  {/* Search and Navigation Icons top row */}
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Input search box mockup */}
+                    <div 
+                      onClick={() => {
+                        setShowOrderForm(true);
+                        setTimeout(() => {
+                          const el = document.getElementById('order-form-anchor');
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 150);
+                        addToast("Silakan isi link produk jastip Anda pada formulir pemesanan!", "success");
+                      }}
+                      className="flex-1 bg-white rounded-2xl flex items-center px-4 py-2.5 text-zinc-400 border border-zinc-200 shadow-inner select-none max-w-xl cursor-pointer hover:bg-zinc-50 transition-colors"
+                    >
+                      <Search className="w-4 h-4 text-zinc-400 mr-2 shrink-0" />
+                      <span className="text-xs font-semibold truncate flex-grow text-left">Mau belanja apa hari ini?</span>
+                      <QrCode className="w-4.5 h-4.5 text-zinc-500 hover:text-zinc-800 transition-colors shrink-0" />
+                    </div>
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                    
-                    {/* Left Copy: Value Proposition */}
-                    <div className="lg:col-span-6 space-y-6 text-left">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-studio-accent/15 border border-studio-accent/20">
-                        <Truck className="w-4 h-4 text-studio-accent" />
-                        <span className="text-[10px] font-mono tracking-widest font-bold uppercase text-studio-charcoal">
-                          CARGO & JASA TITIP KOMPAK
+                    {/* Notification & Cart Badges */}
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <button 
+                        onClick={() => addToast("Belum ada notifikasi baru untuk Anda saat ini.", "info")}
+                        className="relative p-2.5 bg-white/10 hover:bg-white/20 active:scale-95 rounded-full transition-all cursor-pointer"
+                      >
+                        <Bell className="w-4.5 h-4.5 text-white" />
+                        <span className="absolute -top-1 -right-1 bg-[#ECC828] text-zinc-950 font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center border border-red-650">
+                          3
+                        </span>
+                      </button>
+                      
+                      <button 
+                        onClick={() => {
+                          const el = document.getElementById('my-submissions-history');
+                          if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            addToast("Menampilkan Pelacakan Status & Nota Belanja Anda!", "info");
+                          } else {
+                            addToast("Belum ada riwayat pesanan lokal disimpan di browser Anda.", "info");
+                          }
+                        }}
+                        className="relative p-2.5 bg-white/10 hover:bg-white/20 active:scale-95 rounded-full transition-all cursor-pointer"
+                      >
+                        <ShoppingBag className="w-4.5 h-4.5 text-white" />
+                        {mySubmissions.length > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-zinc-950 text-[#ECC828] font-black text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center border border-white">
+                            {mySubmissions.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pengiriman dan Lokasi Row */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 border-t border-white/10 text-xs">
+                    <div className="inline-flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/10 max-w-max">
+                      <span className="text-sm">🚚</span>
+                      <span>
+                        <strong className="font-sans font-bold">Pengiriman dari: </strong>
+                        <span className="underline">Toko NusaKirim Ternate (0.7 km)</span>
+                      </span>
+                    </div>
+
+                    <div className="text-left space-y-0.5">
+                      <span className="block text-[9px] uppercase font-bold text-white/60 tracking-wider">Tujuan Pengiriman :</span>
+                      <p className="flex items-center gap-1 font-bold text-white leading-none">
+                        <MapPin className="w-4 h-4 text-[#ECC828] shrink-0" />
+                        <span className="truncate max-w-xs sm:max-w-md">Lokasi Kamu Saat Ini - Jl. Hijra, Galal, Ternate (Rute Kilat Sofifi)</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ==================== A-POINTS COINS & VOUCHER DOCK CARD (ALFAGIFT STYLE) ==================== */}
+              <div className="max-w-5xl mx-auto px-4 -mt-4 relative z-40 select-none">
+                <div className="bg-white rounded-3xl border border-zinc-200/95 shadow-xl p-4.5 sm:p-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-center divide-y md:divide-y-0 md:divide-x divide-zinc-150">
+                  
+                  {/* 1. Profile / Greetings */}
+                  <div className="flex items-center justify-between w-full md:w-auto gap-3 pb-3 md:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 bg-red-50 text-[#E61C24] border border-red-200/40 rounded-2xl flex items-center justify-center text-base font-black italic">
+                        NK
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider leading-none">PELANGGAN SETIA</p>
+                        <h4 className="font-display font-black text-sm text-zinc-800 mt-0.5 max-w-[150px] sm:max-w-xs truncate" title={userProfile?.name}>
+                          {userProfile ? userProfile.name : "Mitra NusaKirim"}
+                        </h4>
+                      </div>
+                    </div>
+                    {userProfile && (
+                      <button
+                        onClick={handleLogout}
+                        className="text-[10px] text-zinc-400 hover:text-[#E61C24] font-bold border border-zinc-200 hover:border-red-200 bg-zinc-50 px-2.5 py-1 rounded-xl transition-all mr-1 active:scale-95 cursor-pointer"
+                        title="Keluar / Ganti Akun"
+                      >
+                        Ganti Akun
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 2. Nusa Coins & Points */}
+                  <div className="flex items-center justify-between sm:justify-start gap-4 py-3 md:py-0 px-0 md:px-5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xl">🪙</span>
+                      <div className="text-left">
+                        <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block leading-none">NUSA-KOIN</span>
+                        <span className="text-xs font-black text-zinc-800 mt-1 block">350 Koin</span>
+                      </div>
+                    </div>
+                    <div className="h-6 w-[1px] bg-zinc-200 hidden sm:block"></div>
+                    <div className="text-left">
+                      <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block leading-none">Poin Loyalitas</span>
+                      <span className="text-xs font-black text-zinc-800 mt-1 block">0 Points</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Vouchers widget with Ticket Claim button */}
+                  <div className="flex items-center justify-between gap-4 pt-3 md:pt-0 px-0 md:px-5">
+                    <div className="flex items-center gap-2.5">
+                      <Ticket className="w-5 h-5 text-[#E61C24] shrink-0" />
+                      <div className="text-left">
+                        <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block leading-none">Voucher Aktif</span>
+                        <span className="text-xs font-black text-[#E61C24] mt-0.5 block">Diskon Kargo 50%</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => addToast("Kupon diskon kargo 50% rute Ternate-Sofifi berhasil diaktifkan! Gunakan saat chat dengan admin.", "success")}
+                      className="bg-[#E61C24] hover:bg-red-700 active:scale-95 text-white text-[10px] font-black uppercase tracking-wider px-3.5 py-1.5 rounded-xl transition-all cursor-pointer shadow-md shadow-red-200"
+                    >
+                      Klaim
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* ==================== CORE BRAND PROMOTION BANNER CAROUSEL (LITERAL VISUAL MATCH) ==================== */}
+              <div className="max-w-5xl mx-auto px-4 pt-7 pb-2 relative z-10 select-none">
+                <div className="w-full bg-[#0D2C54] text-white rounded-3xl overflow-hidden border-2 border-[#ECC828] relative shadow-lg min-h-[190px] flex flex-col justify-between">
+                  <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-blue-900/40 to-transparent skew-x-12 pointer-events-none" />
+                  
+                  <div className="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center relative z-10 text-left">
+                    {/* Left: Beautiful NK Brand logo block */}
+                    <div className="lg:col-span-5 flex flex-col items-center lg:items-start text-center lg:text-left space-y-2.5">
+                      <div className="flex items-center gap-2 justify-center lg:justify-start bg-white/5 border border-white/10 px-4 py-2 rounded-2xl">
+                        <div className="flex flex-col gap-1 justify-center shrink-0 pr-1">
+                          <div className="h-0.5 w-4 bg-[#ECC828] rounded-full"></div>
+                          <div className="h-1 w-6 bg-white rounded-full"></div>
+                          <div className="h-0.5 w-3 bg-[#ECC828] rounded-full"></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display font-black text-3xl tracking-tighter text-[#ECC828] italic">
+                            NK
+                          </span>
+                          <div className="bg-[#ECC828] text-zinc-950 text-[10px] font-display font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider italic">
+                            EXPRESS
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="w-32 h-0.5 bg-[#ECC828] rounded-full opacity-70 mx-auto lg:mx-0" />
+                      
+                      <p className="font-display font-black text-[9px] sm:text-[10px] tracking-wide text-white uppercase leading-tight">
+                        JEMBATAN BELANJA ONLINE <br/>
+                        <span className="text-[#ECC828]">TERNATE – SOFIFI</span>
+                      </p>
+                    </div>
+
+                    {/* Right Side: Ad details */}
+                    <div className="lg:col-span-7 space-y-3 flex flex-col items-center lg:items-start w-full">
+                      <div className="flex items-center gap-2 justify-center lg:justify-start">
+                        <h2 className="font-display font-black text-base sm:text-lg tracking-tight text-white uppercase italic">
+                          BELANJA ONLINE?
+                        </h2>
+                        <div className="bg-white/10 border border-white/25 rounded-xl px-2 py-0.5 flex items-center gap-1.5 text-[9px]">
+                          <span>🛒</span>
+                          <div className="flex gap-0.5">
+                            <span className="w-3.5 h-3.5 bg-orange-500 rounded-full text-[7px] font-bold text-white flex items-center justify-center">S</span>
+                            <span className="w-3.5 h-3.5 bg-emerald-600 rounded-full text-[7px] font-bold text-white flex items-center justify-center">T</span>
+                            <span className="w-3.5 h-3.5 bg-black rounded-full text-[7px] font-bold text-white flex items-center justify-center">J</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* MAHAL banner card */}
+                      <div className="bg-white text-zinc-900 px-5 py-2 rounded-2xl shadow-md border-2 border-red-600/35 w-full max-w-sm text-center lg:text-left transform -rotate-1 hover:rotate-0 transition-transform duration-300">
+                        <span className="text-[8px] uppercase tracking-wider font-mono text-zinc-400 font-bold block leading-none">
+                          ONGKIR KE SOFIFI
+                        </span>
+                        <span className="font-display font-black text-lg sm:text-xl text-red-650 uppercase tracking-tight mt-0.5 block">
+                          MAHAL?
                         </span>
                       </div>
 
-                      <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl tracking-tight text-studio-charcoal leading-1.1">
-                        Belanja Barang Indonesia <span className="text-studio-accent">Tanpa Hambatan</span>
-                      </h1>
-
-                      <div className="space-y-4">
-                        <p className="text-base sm:text-lg text-zinc-800 leading-relaxed font-semibold">
-                          Ingin beli barang idaman di <strong className="text-[#D91E1E]">Shopee, Tokopedia, atau TikTok Shop</strong>, tapi terkendala akun, pembayaran, atau alamat luar pulau & luar negeri?
-                        </p>
-
-                        <div className="bg-zinc-50 border border-zinc-200/80 rounded-2xl p-4 sm:p-5 space-y-3.5 text-xs sm:text-sm text-zinc-700">
-                          <p className="font-bold text-zinc-900 flex items-center gap-1.5">
-                            ✨ NusaKirim hadir membantu Anda dengan 3 langkah mudah & super hemat:
-                          </p>
-                          <ul className="space-y-2.5 pl-1">
-                            <li className="flex items-start gap-2.5">
-                              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#D91E1E]/10 text-[#D91E1E] text-xs font-bold shrink-0 mt-0.5">1</span>
-                              <span><strong>Cukup Tempel URL/Link Produk</strong> yang ingin Anda beli ke formulir di samping.</span>
-                            </li>
-                            <li className="flex items-start gap-2.5">
-                              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#D91E1E]/10 text-[#D91E1E] text-xs font-bold shrink-0 mt-0.5">2</span>
-                              <span><strong>Kami Belikan & Kemas Aman</strong> secara gratis menggunakan tambahan bubble wrap ekstra.</span>
-                            </li>
-                            <li className="flex items-start gap-2.5">
-                              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold shrink-0 mt-0.5">3</span>
-                              <span><strong>Kirim dengan Ongkir Jauh Lebih Murah</strong> ke alamat Anda menggunakan rute kargo kilat khusus kami.</span>
-                            </li>
-                          </ul>
-                        </div>
-
-                        <p className="text-xs text-zinc-500 italic bg-amber-50 border border-amber-150 rounded-xl px-3.5 py-2 inline-block">
-                          💡 <strong>Garansi Hemat:</strong> Belanja jadi lebih tenang, tanpa ribet pembayaran, dan biaya ongkir dijamin jauh lebih terjangkau lewat NusaKirim!
-                        </p>
-                      </div>
-
-                      {/* Statistics section */}
-                      <div className="pt-6 border-t border-zinc-200/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        {EXPRESS_STATISTICS.map((stat, i) => (
-                          <div key={i}>
-                            <p className="font-display font-black text-xl sm:text-2xl text-studio-charcoal tracking-tight">
-                              {stat.value}
-                            </p>
-                            <p className="text-[10px] text-zinc-400 font-mono uppercase mt-0.5 leading-tight">
-                              {stat.label}
-                            </p>
-                          </div>
-                        ))}
+                      {/* HEMAT Ribbons sticker */}
+                      <div className="bg-[#ECC828] text-[#0D2C54] px-5 py-1.5 rounded-xl font-display font-black text-xs uppercase tracking-wider shadow-sm flex items-center gap-1.5 justify-center transform rotate-1 hover:rotate-0 transition-transform">
+                        <span>⚡ HEMAT HINGGA 50% ⚡</span>
                       </div>
                     </div>
+                  </div>
 
-                    {/* Right: Dynamic Interactive Form Box */}
-                    <div className="lg:col-span-6">
-                      <div className="bg-white rounded-3xl border border-zinc-250/90 shadow-2xl overflow-hidden relative">
-                        
-                        {/* Interactive Banner headers matching selection */}
-                        <div className={`p-5 text-white transition-all duration-300 flex items-center justify-between ${marketingStyle.accentBg}`}>
-                          <div className="flex items-center gap-2">
-                            <ShoppingBag className="w-5 h-5" />
-                            <span className="font-display font-bold text-sm tracking-wide">
-                              FORMULIR PEMESANAN JASTIP & KARGO
-                            </span>
-                          </div>
-                        </div>
+                  {/* Brand marketplace ticker bottom row */}
+                  <div className="bg-blue-950/45 border-t border-white/5 py-2 px-5 flex flex-wrap items-center justify-between text-[8px] sm:text-[9px] text-zinc-300 font-bold gap-2">
+                    <span>BELANJA DARI SEMUA MARKETPLACE:</span>
+                    <div className="flex gap-2.5">
+                      <span className="bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded border border-orange-500/25">Shopee</span>
+                      <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/25">Tokopedia</span>
+                      <span className="bg-zinc-800/80 text-zinc-300 px-2 py-0.5 rounded border border-white/10">TikTok Shop</span>
+                      <span className="bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded border border-amber-500/25">Lazada</span>
+                    </div>
+                  </div>
+                </div>
 
-                        {/* Interactive Tabs selector for marketplaces */}
-                        <div className="grid grid-cols-4 border-b border-zinc-200 font-display text-center">
-                          {(['shopee', 'tokopedia', 'tiktok', 'lainnya'] as const).map((plat) => (
-                            <button
-                              key={plat}
-                              onClick={() => setSelectedMarketplace(plat)}
-                              className={`py-3.5 text-xs font-bold border-b-2 hover:bg-zinc-50 transition-all uppercase cursor-pointer ${
-                                selectedMarketplace === plat
-                                  ? plat === 'shopee'
-                                    ? 'border-orange-500 text-orange-600 font-extrabold bg-orange-50/20'
-                                    : plat === 'tokopedia'
-                                    ? 'border-emerald-500 text-emerald-600 font-extrabold bg-emerald-50/20'
-                                    : plat === 'tiktok'
-                                    ? 'border-zinc-900 text-zinc-900 font-extrabold bg-zinc-50'
-                                    : 'border-studio-accent text-amber-700 font-extrabold bg-amber-50/20'
-                                  : 'border-transparent text-zinc-450'
-                              }`}
-                            >
-                              {plat === 'tiktok' ? 'TikTok' : plat}
-                            </button>
-                          ))}
-                        </div>
+                {/* Dot Slider indicators */}
+                <div className="flex items-center justify-center gap-1.5 mt-3">
+                  <span className="w-3 h-1.5 rounded-full bg-red-600 transition-all"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-300"></span>
+                  <span className="text-[10px] text-zinc-400 font-bold ml-1 hover:underline cursor-pointer" onClick={() => addToast("Membuka 10 halaman promo terbaik NusaKirim!", "info")}> Lihat Semua (10)</span>
+                </div>
+              </div>
 
-                        {/* Form elements */}
-                        <form onSubmit={handleSubmitOrder} className="p-6 space-y-5">
+              {/* ==================== A-GRID SERVICES: SPESIAL DI MIDIKRIING / NUSAKIRIM COMPONENT ==================== */}
+              <div className="max-w-5xl mx-auto px-4 py-6 font-sans select-none text-left relative z-25">
+                <div className="flex items-center justify-between mb-4.5">
+                  <h4 className="font-display font-black text-sm text-zinc-800 tracking-tight flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#E61C24] animate-pulse" />
+                    <span>Spesial di NusaKirim Express</span>
+                  </h4>
+                  <span className="text-[10px] text-red-600 font-bold hover:underline cursor-pointer" onClick={() => handleScrollToSection('tentang-kami')}>Info Layanan</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  
+                  {/* Item 1: Jastip Order Form (Purple soft gradient) */}
+                  <button
+                    onClick={() => {
+                      const willShow = !showOrderForm;
+                      setShowOrderForm(willShow);
+                      if (willShow) {
+                        setTimeout(() => {
+                          const el = document.getElementById('order-form-anchor');
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 150);
+                        addToast("Formulir jastip berhasil dibuka! Silakan draf pesanan belanja Anda.", "success");
+                      } else {
+                        addToast("Formulir Pemesanan disembunyikan.", "info");
+                      }
+                    }}
+                    className={`relative p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100/70 border border-purple-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs active:scale-98 hover:shadow-md hover:border-purple-300 transition-all select-none cursor-pointer group`}
+                  >
+                    <span className="text-xl sm:text-2xl group-hover:scale-115 transition-transform duration-300">🛍️</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-purple-950 uppercase tracking-tight">ENJOY SHOPPING</span>
+                      <span className="block text-[8.5px] text-purple-600/90 font-bold mt-1 leading-tight">Mulai Jastip Baru</span>
+                    </div>
+                  </button>
+
+                  {/* Item 2: Lacak & Chat live CS (Cyan soft gradient) */}
+                  <button
+                    onClick={() => {
+                      setSelectedChatId(null);
+                      setIsOpenChatWidget(true);
+                      addToast("Menghubungkan Anda ke Layanan Pelanggan Live CS...", "success");
+                    }}
+                    className="relative p-4 rounded-2xl bg-gradient-to-br from-cyan-50 to-cyan-100/70 border border-cyan-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs active:scale-98 hover:shadow-md hover:border-cyan-300 transition-all select-none cursor-pointer group"
+                  >
+                    <span className="text-xl sm:text-2xl group-hover:scale-115 transition-transform duration-300">💬</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-cyan-950 uppercase tracking-tight">TAGIHAN & LAPOR</span>
+                      <span className="block text-[8.5px] text-cyan-600/90 font-bold mt-1 leading-tight">Chat Admin Live</span>
+                    </div>
+                  </button>
+
+                  {/* Item 3: Cek tarif cargo hemat (Amber soft gradient) */}
+                  <button
+                    onClick={() => {
+                      handleScrollToSection('shipping-rates');
+                      addToast("Menampilkan daftar kalkulasi tarif kargo laut & darat murah!", "info");
+                    }}
+                    className="relative p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/70 border border-amber-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs active:scale-98 hover:shadow-md hover:border-amber-300 transition-all select-none cursor-pointer group"
+                  >
+                    <span className="text-xl sm:text-2xl group-hover:scale-115 transition-transform duration-300">🏷️</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-amber-950 uppercase tracking-tight">TEBUS MURAH</span>
+                      <span className="block text-[8.5px] text-amber-600/90 font-bold mt-1 leading-tight">Cek Tarif Cargo</span>
+                    </div>
+                  </button>
+
+                  {/* Item 4: Cara Belanja (Rose soft gradient) */}
+                  <button
+                    onClick={() => {
+                      setShowGuideModal(true);
+                      addToast("Menampilkan panduan langkah pemesanan Jastip NusaKirim.", "info");
+                    }}
+                    className="relative p-4 rounded-2xl bg-gradient-to-br from-rose-50 to-rose-100/70 border border-rose-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs active:scale-98 hover:shadow-md hover:border-rose-300 transition-all select-none cursor-pointer group"
+                  >
+                    <span className="text-xl sm:text-2xl group-hover:scale-115 transition-transform duration-300">🎁</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-rose-950 uppercase tracking-tight">EVENT PANDUAN</span>
+                      <span className="block text-[8.5px] text-rose-600/90 font-bold mt-1 leading-tight">Cara Kerja Jastip</span>
+                    </div>
+                  </button>
+
+                  {/* Item 5: Cek Transaksi Saya (Emerald soft gradient) */}
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('my-submissions-history');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        addToast("Menampilkan tab riwayat nota & draf barang Anda di bawah!", "success");
+                      } else {
+                        addToast("Gulir ke bawah untuk memantau pesanan aktif Anda.", "info");
+                      }
+                    }}
+                    className="relative p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100/70 border border-emerald-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs active:scale-98 hover:shadow-md hover:border-emerald-300 transition-all select-none cursor-pointer group"
+                  >
+                    <span className="text-xl sm:text-2xl group-hover:scale-115 transition-transform duration-300">📋</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-emerald-950 uppercase tracking-tight">TEBUS GRATIS</span>
+                      <span className="block text-[8.5px] text-emerald-600/90 font-bold mt-1 leading-tight">Lacak Pesanan Lokal</span>
+                    </div>
+                  </button>
+
+                  {/* Item 6: Admin Portal quick access (Zinc soft gradient) */}
+                  <button
+                    onClick={() => {
+                      setAdminPasswordInput('');
+                      setPasswordError('');
+                      setShowPassword(false);
+                      setShowAdminPasswordModal(true);
+                      addToast("Tantangan login administrator diaktifkan", "info");
+                    }}
+                    className="relative p-4 rounded-2xl bg-gradient-to-br from-zinc-50 to-zinc-150/70 border border-zinc-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs active:scale-98 hover:shadow-md hover:border-zinc-300 transition-all select-none cursor-pointer group"
+                  >
+                    <span className="text-xl sm:text-2xl group-hover:scale-115 transition-transform duration-300">🔑</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-zinc-950 uppercase tracking-tight">HARGA SPESIAL</span>
+                      <span className="block text-[8.5px] text-zinc-650 font-bold mt-1 leading-tight">Admin Control Center</span>
+                    </div>
+                  </button>
+
+                  {/* Item 7: Domestik Rute Kilat (Sky soft gradient) */}
+                  <div className="relative p-4 rounded-2xl bg-gradient-to-br from-sky-50 to-sky-100/70 border border-sky-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs select-none">
+                    <span className="text-xl sm:text-2xl">⚡</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-sky-950 uppercase tracking-tight">KONTROL RUTE</span>
+                      <span className="block text-[8.5px] text-sky-600/90 font-bold mt-1 leading-tight">Kilat Ternate - Sofifi</span>
+                    </div>
+                  </div>
+
+                  {/* Item 8: Safe protection re-packing label (Orange/Gold soft gradient) */}
+                  <div className="relative p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100/70 border border-orange-200/50 flex flex-col justify-between items-start text-left min-h-[110px] shadow-xs select-none">
+                    <span className="text-xl sm:text-2xl">🛡️</span>
+                    <div>
+                      <span className="block font-sans font-black text-[11px] sm:text-[12px] text-orange-950 uppercase tracking-tight">REPACK AMAN</span>
+                      <span className="block text-[8.5px] text-orange-600/90 font-bold mt-1 leading-tight">Bubble Wrap Tebal</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Anchor block for smooth layout scroll target */}
+              <div id="order-form-anchor" />
+
+              {/* Dynamic order form block that expands when user clicks 'Isi Formulir Pemesanan Baru' */}
+              <AnimatePresence>
+                {showOrderForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0, y: -20 }}
+                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                    exit={{ opacity: 0, height: 0, y: -20 }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                    className="overflow-hidden"
+                  >
+                    {/* Hero Banner with the dynamic Link Paste Form Box */}
+                    <div className="border-t border-b border-zinc-200/80 bg-zinc-50/50 py-12">
+                      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
                           
-                          {/* 1. Shop Link product */}
-                          <div className="space-y-1.5">
-                            <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-650">
-                              Tempel Link Produk {marketingStyle.label} *
-                            </label>
-                            <input
-                              type="url"
-                              required
-                              value={productUrl}
-                              onChange={(e) => setProductUrl(e.target.value)}
-                              placeholder={`Tempel URL ${selectedMarketplace}... (contoh: https://${selectedMarketplace === 'lainnya' ? 'situsbelanja' : selectedMarketplace}.co.id/product)`}
-                              className={`w-full text-xs sm:text-sm px-4 py-3 rounded-xl border bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all font-mono placeholder:font-sans ${marketingStyle.borderColor}`}
-                            />
-                            <p className="text-[10px] text-zinc-400">Pastikan link produk masih aktif dan stok tersedia.</p>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-4">
-                            {/* 2. Full Name */}
-                            <div className="col-span-2 space-y-1.5">
-                              <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-650">
-                                Nama Lengkap Anda *
-                              </label>
-                              <input
-                                type="text"
-                                required
-                                value={customerName}
-                                onChange={(e) => setCustomerName(e.target.value)}
-                                placeholder="Contoh: Muhammad Rian"
-                                className="w-full text-xs sm:text-sm px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all font-sans"
-                              />
+                          {/* Left: Value proposition */}
+                          <div className="lg:col-span-5 space-y-6 text-left">
+                            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-studio-accent/15 border border-studio-accent/20">
+                              <Truck className="w-4 h-4 text-studio-accent" />
+                              <span className="text-[10px] font-mono tracking-widest font-bold uppercase text-studio-charcoal">
+                                JASA TITIP BELANJA & KARGO AMAN
+                              </span>
                             </div>
 
-                            {/* Qty */}
-                            <div className="space-y-1.5">
-                              <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-650">
-                                Jumlah (Qty)
-                              </label>
-                              <input
-                                type="number"
-                                min={1}
-                                required
-                                value={quantity}
-                                onChange={(e) => setQuantity(Number(e.target.value))}
-                                className="w-full text-xs sm:text-sm px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all text-center font-mono font-bold"
-                              />
+                            <h2 className="font-display font-black text-3xl sm:text-4xl tracking-tight text-studio-charcoal leading-tight">
+                              Formulir Jastip <br/>
+                              <span className="text-studio-accent">NusaKirim Express</span>
+                            </h2>
+
+                            <div className="space-y-4 text-xs sm:text-sm text-zinc-600">
+                              <p className="font-semibold text-zinc-850">
+                                Mudahnya titip beli barang dari mana saja dengan 3 langkah sederhana:
+                              </p>
+                              <ol className="space-y-2.5 pl-1">
+                                <li className="flex items-start gap-2.5">
+                                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#00AA13]/10 text-[#00AA13] text-[10px] font-bold shrink-0 mt-0.5">1</span>
+                                  <span>Tempel link barang idaman Anda & isi formulir di samping.</span>
+                                </li>
+                                <li className="flex items-start gap-2.5">
+                                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#00AA13]/10 text-[#00AA13] text-[10px] font-bold shrink-0 mt-0.5">2</span>
+                                  <span>Admin kami akan mengecek, merincikan harga total, dan membuatkan invoice pemesanan.</span>
+                                </li>
+                                <li className="flex items-start gap-2.5">
+                                  <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0 mt-0.5">3</span>
+                                  <span>Barang dibelikan, di-repacking gratis dengan bubble wrap tebal, dan dikirimkan dengan kargo murah.</span>
+                                </li>
+                              </ol>
+
+                              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-zinc-700 italic">
+                                💡 <strong>Tips Lacak:</strong> Setelah tombol &quot;Kirim Pesanan&quot; diklik, tab chat pelacakan akan otomatis terbuka. Anda juga bebas mengobrol langsung dengan Admin di chat room tersebut.
+                              </div>
                             </div>
                           </div>
 
-                          {/* 3. WhatsApp number */}
-                          <div className="space-y-1.5">
-                            <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-650">
-                              Nomor WhatsApp Aktif *
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={customerPhone}
-                              onChange={(e) => setCustomerPhone(e.target.value)}
-                              placeholder="Contoh: 08123456789 atau +62..."
-                              className="w-full text-xs sm:text-sm px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all font-mono"
-                            />
-                            <p className="text-[10px] text-zinc-400">Admin akan segera menghubungi Anda di WhatsApp Nomor ini.</p>
-                          </div>
+                          {/* Right: Dynamic Interactive Form Box */}
+                          <div className="lg:col-span-7">
+                            <div className="bg-white rounded-3xl border border-zinc-250/90 shadow-2xl overflow-hidden relative">
+                              
+                              {/* Interactive Banner headers matching selection */}
+                              <div className={`p-5 text-white transition-all duration-305 flex items-center justify-between ${marketingStyle.accentBg}`}>
+                                <div className="flex items-center gap-2">
+                                  <ShoppingBag className="w-5 h-5" />
+                                  <span className="font-display font-bold text-xs sm:text-sm tracking-wide">
+                                    FORMULIR PEMESANAN JASTIP & KARGO
+                                  </span>
+                                </div>
+                                <button 
+                                  onClick={() => setShowOrderForm(false)}
+                                  className="text-white/80 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
+                              </div>
+
+                              {/* Interactive Tabs selector for marketplaces */}
+                              <div className="grid grid-cols-4 border-b border-zinc-205 font-display text-center">
+                                {(['shopee', 'tokopedia', 'tiktok', 'lainnya'] as const).map((plat) => (
+                                  <button
+                                    key={plat}
+                                    onClick={() => setSelectedMarketplace(plat)}
+                                    className={`py-3.5 text-xs font-bold border-b-2 hover:bg-zinc-50 transition-all uppercase cursor-pointer ${
+                                      selectedMarketplace === plat
+                                        ? plat === 'shopee'
+                                          ? 'border-orange-500 text-orange-600 font-extrabold bg-orange-50/20'
+                                          : plat === 'tokopedia'
+                                          ? 'border-emerald-500 text-emerald-600 font-extrabold bg-emerald-50/20'
+                                          : plat === 'tiktok'
+                                          ? 'border-zinc-900 text-zinc-900 font-extrabold bg-zinc-50'
+                                          : 'border-studio-accent text-amber-700 font-extrabold bg-amber-50/20'
+                                        : 'border-transparent text-zinc-450'
+                                    }`}
+                                  >
+                                    {plat === 'tiktok' ? 'TikTok' : plat}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {/* Form elements */}
+                              <form onSubmit={handleSubmitOrder} className="p-6 space-y-5">
+                                
+                                {/* 1. Shop Link product */}
+                                <div className="space-y-1.5">
+                                  <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-650 text-left">
+                                    Tempel Link Produk {marketingStyle.label} *
+                                  </label>
+                                  <input
+                                    id="product-link-input"
+                                    type="url"
+                                    required
+                                    value={productUrl}
+                                    onChange={(e) => setProductUrl(e.target.value)}
+                                    placeholder={`Tempel URL ${selectedMarketplace}... (contoh: https://${selectedMarketplace === 'lainnya' ? 'situsbelanja' : selectedMarketplace}.co.id/product)`}
+                                    className={`w-full text-xs sm:text-sm px-4 py-3 rounded-xl border bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all font-mono placeholder:font-sans ${marketingStyle.borderColor}`}
+                                  />
+                                  <p className="text-[10px] text-zinc-400 text-left">Pastikan link produk masih aktif dan stok tersedia.</p>
+                                </div>
+
+                                {/* Dynamic User Profile Info (Pre-filled via Login Gate) */}
+                                <div className="bg-zinc-50 border border-zinc-200 p-4 rounded-2xl text-left space-y-3 relative overflow-hidden">
+                                  <div className="absolute right-3 top-3 inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-200">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    <span>Profil Terisi</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-1.5 text-[10px] uppercase font-black text-zinc-500 tracking-wider">
+                                    <span>📋 Detail Penerima & Pengiriman</span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                                    <div>
+                                      <span className="text-[10px] text-zinc-400 block font-bold uppercase tracking-wider">Nama Lengkap</span>
+                                      <span className="font-extrabold text-zinc-800">{customerName || userProfile?.name}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-[10px] text-zinc-400 block font-bold uppercase tracking-wider">No. WhatsApp</span>
+                                      <span className="font-mono font-bold text-zinc-800">{customerPhone || userProfile?.phone}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2.5 border-t border-zinc-200 text-xs">
+                                    <span className="text-[10px] text-zinc-400 block font-bold uppercase tracking-wider">Alamat Pengiriman</span>
+                                    <p className="font-semibold text-zinc-700 mt-0.5 leading-relaxed">{customerAddress || userProfile?.address}</p>
+                                  </div>
+                                </div>
+
+                                {/* Qty Select Field */}
+                                <div className="space-y-1.5 text-left">
+                                  <label className="block text-xs uppercase tracking-wider font-semibold text-zinc-650">
+                                    Jumlah Barang (Qty) *
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    required
+                                    value={quantity}
+                                    onChange={(e) => setQuantity(Number(e.target.value))}
+                                    className="w-28 text-xs sm:text-sm px-4 py-3 rounded-xl border border-zinc-200 bg-zinc-50/60 focus:bg-white text-studio-charcoal focus:outline-none transition-all text-center font-mono font-bold"
+                                  />
+                                </div>
 
                           {/* 4. Notes Specifications */}
                           <div className="space-y-1.5">
@@ -1210,7 +1762,10 @@ Silakan konfirmasikan kelanjutan pemesanan jika estimasi sudah sesuai. Terima ka
 
                   </div>
                 </div>
-              </section>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
               {/* Tentang Kami Section */}
               <section id="tentang-kami" className="py-20 bg-white border-b border-zinc-200 relative overflow-hidden">

@@ -9,6 +9,7 @@ export interface ILinkSubmission {
   productUrl: string;
   customerName: string;
   customerPhone: string;
+  customerAddress?: string;
   quantity: number;
   notes?: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
@@ -26,6 +27,7 @@ const LinkSubmissionSchema: Schema = new Schema({
   productUrl: { type: String, required: true },
   customerName: { type: String, required: true },
   customerPhone: { type: String, required: true },
+  customerAddress: { type: String, default: "" },
   quantity: { type: Number, required: true, default: 1 },
   notes: { type: String, default: "" },
   status: { 
@@ -87,6 +89,7 @@ export async function getSubmissions(): Promise<ILinkSubmission[]> {
         productUrl: doc.productUrl,
         customerName: doc.customerName,
         customerPhone: doc.customerPhone,
+        customerAddress: doc.customerAddress || "",
         quantity: doc.quantity,
         notes: doc.notes,
         status: doc.status,
@@ -144,6 +147,7 @@ export async function updateSubmission(id: string, updates: { status?: 'pending'
           productUrl: updatedDoc.productUrl,
           customerName: updatedDoc.customerName,
           customerPhone: updatedDoc.customerPhone,
+          customerAddress: updatedDoc.customerAddress || "",
           quantity: updatedDoc.quantity,
           notes: updatedDoc.notes,
           status: updatedDoc.status,

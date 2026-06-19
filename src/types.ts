@@ -4,6 +4,7 @@ export interface LinkSubmission {
   productUrl: string;
   customerName: string;
   customerPhone: string;
+  customerAddress?: string;
   quantity: number;
   notes?: string;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
